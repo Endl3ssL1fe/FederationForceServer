@@ -1,54 +1,38 @@
 import socket
 import threading
-import struct
 
-HOST = '0.0.0.0'  
-PORT = 30000       
+# === CONFIG ===
+HOST = '0.0.0.0'  # Listen on all interfaces
+PORT = 30000       # Default port for Federation Force (change if needed)
 
-def handle_authentication(conn):
-    challenge = b'\x01\x02\x03\x04'  
-    conn.sendall(challenge)
-
-    response = conn.recv(1024)
-    if response == b'\x04\x03\x02\x01':  
-        return True
-    else:
-        return False
-
-def handle_packet(data):
-    packet_type = data[0]
-
-    if packet_type == 0x01:
-        response = b'\x01\x01'  
-    else:
-        response = b'\x00\x00'  
-
-    return response
-
+# === Basic Server Setup ===
 def handle_client(conn, addr):
-    if not handle_authentication(conn):
+    print(f"[+] New connection from {addr}")
+    try:
+        while True:
+            data = conn.recv(1024)
+            if not data:
+                break
+            print(f"[>] Received: {data.hex()}")
+            response = b'\x00'  # Placeholder response
+            conn.sendall(response)
+    except Exception as e:
+        print(f"[!] Error with client {addr}: {e}")
+    finally:
         conn.close()
-        return
-
-    while True:
-        data = conn.recv(1024)
-        if not data:
-            break
-        response = handle_packet(data)
-        conn.sendall(response)
-
-    conn.close()
+        print(f"[-] Connection from {addr} closed")
 
 def start_server():
+    print("[*] Starting server...")  # Added this for debugging
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST, PORT))
-    server.listen(5)
-    
+    server.listen()
+    print(f"[*] Server listening on {HOST}:{PORT}")
     while True:
         conn, addr = server.accept()
+        print(f"[*] Connection accepted from {addr}")  # Added this for debugging
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
 
 if __name__ == '__main__':
     start_server()
-
